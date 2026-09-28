@@ -16,6 +16,7 @@ import android.widget.*
 
 class FloatingService: Service(){
     private lateinit var wm:WindowManager; private lateinit var bubble:TextView
+    private var activeDialog:Dialog?=null
     override fun onBind(i:Intent?):IBinder?=null
     override fun onCreate(){ super.onCreate(); createChannel(); startForeground(11, NotificationCompat.Builder(this,"assistant").setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle("微信AI回复助手").setContentText("悬浮球运行中").setOngoing(true).build()); val filter=android.content.IntentFilter().apply { addAction("com.tang.wechatassistant.CAPTURE_REPLY"); addAction("com.tang.wechatassistant.CAPTURE_FAILED") }; if(Build.VERSION.SDK_INT>=33) registerReceiver(receiver,filter,RECEIVER_NOT_EXPORTED) else @Suppress("DEPRECATION") registerReceiver(receiver,filter); wm=getSystemService(WINDOW_SERVICE) as WindowManager
         bubble=TextView(this).apply { text="AI"; textSize=18f; gravity=Gravity.CENTER; setBackgroundResource(android.R.drawable.btn_default); setPadding(18,18,18,18) }
@@ -26,9 +27,22 @@ class FloatingService: Service(){
     }
     private val receiver=object:BroadcastReceiver(){ override fun onReceive(c:Context?,i:Intent?){ if(i?.action=="com.tang.wechatassistant.CAPTURE_REPLY") showReply(i.getStringExtra("reply")?:"未生成回复") else if(i?.action=="com.tang.wechatassistant.CAPTURE_FAILED") Toast.makeText(this@FloatingService,"你取消了本次屏幕读取",Toast.LENGTH_SHORT).show() } }
     private fun startCapture(){ startActivity(Intent(this,CaptureActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-    private fun showReply(text:String){ val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(28,28,28,28);setBackgroundColor(0xFFF7F7F7.toInt())}; box.addView(TextView(this).apply{this.text="AI根据当前屏幕建议：\n\n$text";textSize=17f}); box.addView(Button(this).apply{this.text="复制";setOnClickListener{(getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(ClipData.newPlainText("AI回复",text));Toast.makeText(this@FloatingService,"已复制",Toast.LENGTH_SHORT).show()}}); Dialog(this).apply{setContentView(box);window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY);show()}}
+    private fun showReply(text:String){
+        activeDialog?.dismiss()
+        val dialog=Dialog(this)
+        val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(28,28,28,28);setBackgroundColor(0xFFF7F7F7.toInt())}
+        val scroll=ScrollView(this).apply { addView(TextView(this@FloatingService).apply{this.text="AI根据当前屏幕建议：\n\n$text";textSize=17f;setPadding(0,0,0,16)}) }
+        box.addView(scroll,LinearLayout.LayoutParams(-1,0,1f))
+        val buttons=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL }
+        buttons.addView(Button(this).apply{this.text="复制";setOnClickListener{(getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(ClipData.newPlainText("AI回复",text));Toast.makeText(this@FloatingService,"已复制",Toast.LENGTH_SHORT).show()}},LinearLayout.LayoutParams(0,-2,1f))
+        buttons.addView(Button(this).apply{this.text="关闭";setOnClickListener{dialog.dismiss()}},LinearLayout.LayoutParams(0,-2,1f))
+        box.addView(buttons)
+        dialog.setContentView(box); dialog.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY); dialog.setOnDismissListener{if(activeDialog===dialog)activeDialog=null}; dialog.show(); dialog.window?.setLayout(WindowManager.LayoutParams.MATCH_PARENT,(resources.displayMetrics.heightPixels*0.65f).toInt()); activeDialog=dialog
+    }
     private fun createChannel(){ if(Build.VERSION.SDK_INT>=26){ val nm=getSystemService(NOTIFICATION_SERVICE) as NotificationManager; nm.createNotificationChannel(NotificationChannel("assistant","AI悬浮助手",NotificationManager.IMPORTANCE_LOW)) } }
     private fun showPanel(){
+        activeDialog?.dismiss()
+        val dialog=Dialog(this)
         val panel=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(28,28,28,28); setBackgroundColor(0xFFF7F7F7.toInt()) }
         val input=EditText(this).apply { hint="粘贴对方的微信聊天内容…"; minLines=5 }
         val result=TextView(this).apply { text="选择回复风格后，这里显示建议。\n\n当前演示版先完成悬浮交互；联网 AI 接口放在下一步接入。"; textSize=16f; setPadding(0,20,0,20) }
@@ -45,8 +59,9 @@ class FloatingService: Service(){
             } },LinearLayout.LayoutParams(0,-2,1f)) }
         panel.addView(row);panel.addView(result)
         panel.addView(Button(this).apply { text="复制回复";setOnClickListener { (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(ClipData.newPlainText("AI回复",result.text));Toast.makeText(this@FloatingService,"已复制",Toast.LENGTH_SHORT).show() } })
-        val dialog=Dialog(this); dialog.setContentView(panel); dialog.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY); dialog.window?.setLayout(WindowManager.LayoutParams.MATCH_PARENT,WindowManager.LayoutParams.WRAP_CONTENT); dialog.show()
+        panel.addView(Button(this).apply { text="关闭窗口";setOnClickListener { dialog.dismiss() } })
+        dialog.setContentView(panel); dialog.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY); dialog.setOnDismissListener{if(activeDialog===dialog)activeDialog=null}; dialog.show(); dialog.window?.setLayout(WindowManager.LayoutParams.MATCH_PARENT,WindowManager.LayoutParams.WRAP_CONTENT); activeDialog=dialog
     }
     private fun localDraft(s:String,style:String):String { if(s.isBlank()) return "请先粘贴聊天内容。"; return when(style){"简短"->"收到，我先核实一下具体情况，确认后马上回复你。";"商务强硬"->"这个事情我们会积极处理，但具体责任和方案需要依据实际情况确认，确认清楚后我给你明确答复。";else->"我理解你的意思，这个事情我也比较重视。我先把具体情况核实清楚，该配合处理的我们一定积极配合，确认后我尽快给你一个明确回复。"} }
-    override fun onDestroy(){ try{unregisterReceiver(receiver)}catch(_:Exception){}; if(::bubble.isInitialized) try{wm.removeView(bubble)}catch(_:Exception){};super.onDestroy() }
+    override fun onDestroy(){ activeDialog?.dismiss();activeDialog=null;try{unregisterReceiver(receiver)}catch(_:Exception){}; if(::bubble.isInitialized) try{wm.removeView(bubble)}catch(_:Exception){};super.onDestroy() }
 }

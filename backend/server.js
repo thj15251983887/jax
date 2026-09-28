@@ -50,7 +50,7 @@ app.post("/reply-image", async (req, res) => {
       messages: [
         { role: "system", content: rules },
         { role: "user", content: [
-          { type: "text", text: `这是用户主动截取的当前微信聊天屏幕。识别可见聊天上下文，忽略状态栏、键盘和无关UI。回复风格：${req.body?.style || "高情商"}。只给建议回复。` },
+          { type: "text", text: `这是用户主动截取的当前微信聊天屏幕。请优先读取左右两侧聊天气泡中的可见文字，按从上到下的顺序理解上下文；忽略状态栏、键盘、悬浮球、头像、时间和无关UI。若屏幕中包含照片、视频、表情包或文件消息，只把它们视为“对方/我发送了一条媒体消息”，不要猜测媒体内容，也不要因此放弃读取其余文字。根据最后一条可辨认的对方消息给出回复。回复风格：${req.body?.style || "高情商"}。只输出可直接发送的建议回复；如果确实没有任何可辨认文字，则输出“未识别到清晰的聊天文字，请改用手动粘贴”。` },
           { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
         ] },
       ],
