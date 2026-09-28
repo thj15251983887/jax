@@ -1,18 +1,17 @@
 # 微信 AI 回复助手 V4
 
-手机端微信悬浮 AI 回复建议工具。
+V4 新增 App 内服务器配置页，不再需要修改源码填写后端地址；支持可选访问口令。
 
-## 功能
-- Android 悬浮球
-- 手动粘贴聊天生成回复
-- 用户主动授权的一次性屏幕捕获
-- AI 后端示例（backend/）
-- App 内配置 HTTPS 后端地址
-- 一键复制建议，由用户自己确认发送
-- 不读取微信数据库，不自动发送微信
+核心流程：微信聊天页 → AI 悬浮球 → 手动粘贴或主动授权读取当前屏幕 → AI 生成建议 → 一键复制 → 用户自己发送。
 
-## 云端 APK
-仓库已配置 GitHub Actions。每次推送 main 分支会自动构建 debug APK，也可在 Actions 页面手动运行 Build Android APK。
+## 当前状态
+- Android 悬浮球：已实现
+- 手动聊天文本生成：已实现
+- 一次性屏幕捕获：已实现
+- AI 后端示例：已包含在 backend/
+- App 内 HTTPS 后端配置：已实现
+- 自动发送微信：不做
+- 后台读取微信数据库：不做
 
-## 使用前
-AI 功能需要部署 backend/，在服务端配置 OPENAI_API_KEY，再把 HTTPS 地址填进 App。
+## 还差什么才能直接使用
+需要先部署 backend/ 并配置 OPENAI_API_KEY，然后把 HTTPS 地址填进 App。源码可用 Android Studio 编译，也已包含 GitHub Actions 自动打包流程：上传到 GitHub 后打开 Actions，运行 “Build Android APK”，完成后下载 `WechatAI-V4-debug-apk`。
