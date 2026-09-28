@@ -1,0 +1,7 @@
+{
+  "name": "wechat-ai-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {"start": "node server.js"},
+  "dependencies": {"express": "^5.1.0", "openai": "^5.0.0"}
+}
