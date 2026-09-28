@@ -1,6 +1,7 @@
 package com.tang.wechatassistant
 
 import android.app.Service
+import android.app.Dialog
 import android.content.*
 import android.graphics.PixelFormat
 import android.os.IBinder
