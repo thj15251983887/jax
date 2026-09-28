@@ -1,0 +1,7 @@
+import express from "express";
+import OpenAI from "openai";
+const app=express(); app.use(express.json({limit:"12mb"})); const client=new OpenAI({apiKey:process.env.OPENAI_API_KEY});
+const rules=`你是中文微信回复助手。根据对话上下文，只输出一条可以直接复制发送的中文回复正文，不解释。语气自然、有分寸、不卑不亢。用户常处理暖通、工程、报价、催款、客户投诉和商务沟通。涉及工程责任、赔偿或质量争议，在事实未核实前不要替用户承认法律责任、过错或具体赔偿金额。不要猜测屏幕中看不到的信息。`;
+app.post("/reply",async(req,res)=>{try{const chat=String(req.body?.chat||"").slice(0,12000);if(!chat.trim())return res.status(400).json({error:"chat required"});const r=await client.responses.create({model:process.env.OPENAI_MODEL||"gpt-5.6",instructions:rules,input:`回复风格：${req.body?.style||"高情商"}\n聊天内容：\n${chat}`});res.json({reply:r.output_text})}catch(e){res.status(500).json({error:e?.message||"AI failed"})}});
+app.post("/reply-image",async(req,res)=>{try{const b64=String(req.body?.imageBase64||"");if(!b64)return res.status(400).json({error:"image required"});const r=await client.responses.create({model:process.env.OPENAI_MODEL||"gpt-5.6",instructions:rules,input:[{role:"user",content:[{type:"input_text",text:`这是用户主动截取的当前微信聊天屏幕。识别可见聊天上下文，忽略状态栏、键盘和无关UI。回复风格：${req.body?.style||"高情商"}。只给建议回复。`},{type:"input_image",image_url:`data:image/jpeg;base64,${b64}`}]}]});res.json({reply:r.output_text})}catch(e){res.status(500).json({error:e?.message||"AI vision failed"})}});
+app.get("/health",(_,res)=>res.json({ok:true})); app.listen(process.env.PORT||3000,()=>console.log("Wechat AI V4 backend running"));
