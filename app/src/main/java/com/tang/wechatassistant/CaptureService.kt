@@ -33,7 +33,11 @@ class CaptureService : Service() {
                 val out=ByteArrayOutputStream(); bmp.compress(Bitmap.CompressFormat.JPEG,82,out); bmp.recycle()
                 val b64=android.util.Base64.encodeToString(out.toByteArray(),android.util.Base64.NO_WRAP)
                 Thread {
-                    val reply=AiApi.generateFromImage(this@CaptureService,b64,"高情商").getOrElse { "识别失败：${it.message}" }
+                    val prefs=getSharedPreferences("settings",MODE_PRIVATE)
+                    val relation=prefs.getString("relation","客户")?:"客户"
+                    val keywords=prefs.getString("guideKeywords","")?:""
+                    val extra=prefs.getString("guideExtra","")?:""
+                    val reply=AiApi.generateFromImage(this@CaptureService,b64,relation,keywords,extra).getOrElse { "识别失败：${it.message}" }
                     sendBroadcast(Intent("com.tang.wechatassistant.CAPTURE_REPLY").setPackage(packageName).putExtra("reply",reply))
                     vd.release(); projection.stop(); reader.close(); stopForeground(STOP_FOREGROUND_REMOVE); stopSelf()
                 }.start()

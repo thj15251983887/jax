@@ -35,15 +35,21 @@ object AiApi {
             .getJSONObject("message").getString("content")
     }
 
-    fun generate(context: Context, chat: String, style: String): Result<String> =
-        post(context, "回复风格：$style\n聊天内容：\n$chat")
+    private fun request(relation: String, keywords: String, extra: String, chat: String) =
+        "关系模式：$relation\n关键词引导：${keywords.ifBlank { "无" }}\n补充要求：${extra.ifBlank { "无" }}\n聊天内容：\n$chat\n\n请生成3条可以直接发送的中文回复，三条表达要有明显区别。不要解释，不要编号，只用|||分隔三条回复。"
 
-    fun generateFromImage(context: Context, imageBase64: String, style: String): Result<String> {
-        val instruction = "这是用户主动截取的当前微信聊天屏幕。请优先读取左右两侧聊天气泡中的可见文字，按从上到下的顺序理解上下文；忽略状态栏、键盘、悬浮球、头像、时间和无关UI。若屏幕中包含照片、视频、表情包或文件消息，只把它们视为媒体消息，不要猜测媒体内容，也不要因此放弃读取其余文字。根据最后一条可辨认的对方消息给出回复。回复风格：$style。只输出可直接发送的建议回复；如果确实没有任何可辨认文字，则输出“未识别到清晰的聊天文字，请改用手动粘贴”。"
+    fun generate(context: Context, chat: String, relation: String, keywords: String, extra: String): Result<String> =
+        post(context, request(relation, keywords, extra, chat))
+
+    fun generateFromImage(context: Context, imageBase64: String, relation: String, keywords: String, extra: String): Result<String> {
+        val instruction = "这是用户主动截取的当前微信聊天屏幕。请优先读取左右两侧聊天气泡中的可见文字，按从上到下的顺序理解上下文；忽略状态栏、键盘、悬浮球、头像、时间和无关UI。若屏幕中包含照片、视频、表情包或文件消息，只把它们视为媒体消息，不要猜测媒体内容，也不要因此放弃读取其余文字。根据最后一条可辨认的对方消息生成回复。如果确实没有任何可辨认文字，则输出“未识别到清晰的聊天文字，请改用手动粘贴”。\n\n" + request(relation, keywords, extra, "以图片中的聊天内容为准")
         val content = JSONArray()
             .put(JSONObject().put("type", "text").put("text", instruction))
             .put(JSONObject().put("type", "image_url").put("image_url",
                 JSONObject().put("url", "data:image/jpeg;base64,$imageBase64")))
         return post(context, content)
     }
+
+    fun refine(context: Context, replies: String, relation: String, directive: String): Result<String> =
+        post(context, "关系模式：$relation\n现有候选回复：\n$replies\n\n请按“$directive”重新生成3条可直接发送的回复。不要解释，不要编号，只用|||分隔。")
 }
