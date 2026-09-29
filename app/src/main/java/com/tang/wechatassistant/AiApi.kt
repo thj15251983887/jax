@@ -8,8 +8,10 @@ object AiApi {
         val p=context.getSharedPreferences("settings",Context.MODE_PRIVATE)
         val endpoint=(p.getString("endpoint","")?:"").trimEnd('/')
         val token=p.getString("token","")?:""
+        val kimiKey=p.getString("kimiKey","")?:""
         require(endpoint.startsWith("https://")){"请先在主界面配置 HTTPS 后端地址"}
-        val c=(URL(endpoint+path).openConnection() as HttpURLConnection).apply{requestMethod="POST";connectTimeout=12000;readTimeout=45000;doOutput=true;setRequestProperty("Content-Type","application/json; charset=utf-8");if(token.isNotBlank())setRequestProperty("Authorization","Bearer $token")}
+        require(kimiKey.isNotBlank()){"请先在主界面填写 Kimi API Key"}
+        val c=(URL(endpoint+path).openConnection() as HttpURLConnection).apply{requestMethod="POST";connectTimeout=12000;readTimeout=45000;doOutput=true;setRequestProperty("Content-Type","application/json; charset=utf-8");setRequestProperty("X-Kimi-API-Key",kimiKey);if(token.isNotBlank())setRequestProperty("Authorization","Bearer $token")}
         c.outputStream.use{it.write(body.toString().toByteArray())}; val s=if(c.responseCode in 200..299)c.inputStream else c.errorStream; val raw=s.bufferedReader().use{it.readText()}; if(c.responseCode !in 200..299) error("服务返回 ${c.responseCode}: $raw"); JSONObject(raw).getString("reply")
     }
     fun generate(context:Context,chat:String,style:String)=post(context,"/reply",JSONObject().put("chat",chat).put("style",style))
