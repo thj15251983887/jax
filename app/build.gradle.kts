@@ -1,7 +1,7 @@
 plugins { id("com.android.application"); id("org.jetbrains.kotlin.android") }
 
 android { namespace = "com.tang.wechatassistant"; compileSdk = 35
-    defaultConfig { applicationId = "com.tang.wechatassistant"; minSdk = 26; targetSdk = 35; versionCode = 4; versionName = "1.3" }
+    defaultConfig { applicationId = "com.tang.wechatassistant"; minSdk = 26; targetSdk = 35; versionCode = 5; versionName = "1.4" }
     buildTypes { getByName("release") { isMinifyEnabled = false } }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
 }
